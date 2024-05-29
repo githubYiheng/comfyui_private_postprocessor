@@ -24,7 +24,7 @@ class ImageCPostprocessor:
         return {
             "required": {
                 "image": ("IMAGE", ),
-                "kernel_size": ("INT", {"default": 2})
+                "kernel_size": ("INT", {"default": 3})
             },
         }
 

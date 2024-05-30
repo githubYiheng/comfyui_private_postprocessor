@@ -51,7 +51,9 @@ class ImageCPostprocessor:
         if hierarchy is None:
             print("No contours found.")
             return None
-
+        if len(contours) < 2:
+            print("Alpha channel not good")
+            return input_image
         # 遍历每个轮廓，处理
         for contour in contours:
             area = cv2.contourArea(contour)
@@ -89,7 +91,7 @@ class ImageCPostprocessor:
             else:
                 masked_image = cv2.bitwise_and(
                     original_image, original_image, mask=temp_mask)
-                kernel_size = 3  # 核的大小，决定了放大的像素数
+                kernel_size = dilate_kernel_size  # 核的大小，决定了放大的像素数
                 kernel = np.ones((kernel_size, kernel_size), np.uint8)
                 dilated_image = cv2.dilate(masked_image, kernel, iterations=1)
                 original_image[temp_mask ==

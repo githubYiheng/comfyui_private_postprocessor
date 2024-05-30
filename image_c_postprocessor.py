@@ -112,7 +112,7 @@ class ImageCPostprocessor:
                 pil_image = tensor2pil(img)
 
                 # Apply Fliter
-                new_img = self.process_image_pil(pil_image, kernel_size)
+                new_img, success = self.process_image_pil(pil_image, kernel_size)
 
                 # Output image
                 out_image = (pil2tensor(new_img) if pil_image else img)
@@ -129,14 +129,14 @@ class ImageCPostprocessor:
             pil_image = tensor2pil(img)
 
             # Apply Fliter
-            new_img = self.process_image_pil(pil_image, kernel_size)
+            new_img, success = self.process_image_pil(pil_image, kernel_size)
 
             # Output image
             out_image = (pil2tensor(new_img) if pil_image else img)
 
             tensors = out_image
 
-        return (tensors, )
+        return (tensors, success)
 
 class PrivateImageMask:
     def __init__(self):

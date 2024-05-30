@@ -148,7 +148,7 @@ class PrivateImageMask:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "input_image": ("IMAGE", ),
+                "image": ("IMAGE", ),
                 "mask_image": ("IMAGE", ),
                 "mask_gray_threshold": ("INT", {"default": 127})
             },

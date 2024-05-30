@@ -140,6 +140,95 @@ class ImageCPostprocessor:
 
         return (tensors, )
 
+class PrivateImageMask:
+    def __init__(self):
+        pass
+        # def apply_mask_with_opencv(self, input_image, mask_image, mask_gray_threshold):
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "input_image": ("IMAGE", ),
+                "mask_image": ("IMAGE", ),
+                "mask_gray_threshold": ("INT", {"default": 127})
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "apply_postprocess"
+    CATEGORY = "Tools"
+
+    def apply_mask_with_opencv(self, input_image, mask_image, mask_gray_threshold):
+        """
+        使用OpenCV和NumPy对输入的PIL图像应用掩膜，并返回处理后的PIL图像。
+        
+        Args:
+        input_image (PIL.Image): 被遮罩的PIL图像。
+        mask_image (PIL.Image): 用作遮罩的PIL图像。
+
+        Returns:
+        PIL.Image: 处理后的PIL图像，掩膜区域变为透明。
+        """
+        # 将PIL图像转换为OpenCV图像格式
+        input_cv = cv2.cvtColor(np.array(input_image), cv2.COLOR_RGBA2BGRA)
+        mask_cv = cv2.cvtColor(np.array(mask_image), cv2.COLOR_RGB2GRAY)
+
+        # 确保掩膜是单通道的
+        if len(mask_cv.shape) == 3:
+            mask_cv = cv2.cvtColor(mask_cv, cv2.COLOR_BGR2GRAY)
+
+        # 将掩膜二值化，阈值可以根据需要调整
+        _, binary_mask = cv2.threshold(mask_cv, mask_gray_threshold, 255, cv2.THRESH_BINARY)
+        
+        # 创建一个新的只有alpha通道的图像，使用掩膜作为alpha通道
+        alpha_channel = cv2.bitwise_not(binary_mask)
+        b, g, r, a = cv2.split(input_cv)
+        bgra = [b, g, r, alpha_channel]
+
+        # 合并通道生成最终图像
+        result_cv = cv2.merge(bgra)
+
+        # 将OpenCV图像转换回PIL图像
+        result_pil = Image.fromarray(cv2.cvtColor(result_cv, cv2.COLOR_BGRA2RGBA))
+        
+        return result_pil
+
+    def apply_postprocess(self, image, mask_image, mask_gray_threshold):
+        tensors = []
+        if len(image) > 1:
+            for img in image:
+
+                pil_image = None
+                # PIL Image
+                pil_image = tensor2pil(img)
+
+                # Apply Fliter
+                new_img = self.apply_mask_with_opencv(pil_image, mask_image, mask_gray_threshold)
+
+                # Output image
+                out_image = (pil2tensor(new_img) if pil_image else img)
+
+                tensors.append(out_image)
+
+            tensors = torch.cat(tensors, dim=0)
+
+        else:
+            pil_image = None
+            img = image
+            # PIL Image
+
+            pil_image = tensor2pil(img)
+
+            # Apply Fliter
+            new_img = self.apply_mask_with_opencv(pil_image, mask_image, mask_gray_threshold)
+
+            # Output image
+            out_image = (pil2tensor(new_img) if pil_image else img)
+
+            tensors = out_image
+
+        return (tensors, )
 
 # Set the web directory, any .js file in that directory will be loaded by the frontend as a frontend extension
 # WEB_DIRECTORY = "./somejs"
@@ -148,10 +237,12 @@ class ImageCPostprocessor:
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
-    "ImageCPostprocessor": ImageCPostprocessor
+    "ImageCPostprocessor": ImageCPostprocessor,
+    "PrivateImageMask": PrivateImageMask
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ImageCPostprocessor": "Private ImageCPostprocessor"
+    "ImageCPostprocessor": "Private ImageCPostprocessor",
+    "PrivateImageMask": "Private Image Mask"
 }

@@ -28,8 +28,8 @@ class ImageCPostprocessor:
             },
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("image",)
+    RETURN_TYPES = ("IMAGE", "BOOLEAN")
+    RETURN_NAMES = ("image", "success")
     FUNCTION = "apply_postprocess"
     CATEGORY = "Tools"
 
@@ -48,12 +48,10 @@ class ImageCPostprocessor:
         # 使用 RETR_EXTERNAL 模式找到所有轮廓
         contours, hierarchy = cv2.findContours(
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if hierarchy is None:
-            print("No contours found.")
-            return None
+
         if len(contours) < 2:
-            print("Alpha channel not good")
-            return input_image
+            print("No contours found.")
+            return (input_image, False)
         # 遍历每个轮廓，处理
         for contour in contours:
             area = cv2.contourArea(contour)
@@ -102,7 +100,7 @@ class ImageCPostprocessor:
         # 将 numpy 数组转回 PIL 图片
         processed_image = Image.fromarray(original_image)
 
-        return processed_image
+        return (processed_image, True)
 
     def apply_postprocess(self, image, kernel_size):
         tensors = []

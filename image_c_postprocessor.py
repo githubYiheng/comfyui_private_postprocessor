@@ -47,21 +47,23 @@ class ImageCPostprocessor:
 
         # 使用 RETR_EXTERNAL 模式找到所有轮廓
         contours, hierarchy = cv2.findContours(
-            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         if len(contours) < 2:
             print("No contours found.")
             return (input_image, False)
         # 遍历每个轮廓，处理
         for contour in contours:
-            area = cv2.contourArea(contour)
+            area = cv2.contourArea(contour, oriented=True)
 
             # 创建单个区域的掩膜
             temp_mask = np.zeros_like(mask)
             cv2.drawContours(temp_mask, [contour], -1,
                              255, thickness=cv2.FILLED)
-
-            if area < 80:
+            # 预定义输入图像最外围必须包含空包围使得内部要被查找的非空区域查找到的面积方向为负值
+            if area >= 0:
+                continue
+            if 0 > area and -80 < area:
                 # 平均颜色
                 # masked_image = cv2.bitwise_and(original_image, original_image, mask=temp_mask)
                 # mean_color = cv2.mean(masked_image, mask=temp_mask)[:3]
@@ -86,7 +88,7 @@ class ImageCPostprocessor:
                     color = tuple(median_color)
                     # random_color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)  # 包括 alpha 值
                     original_image[temp_mask == 255] = color
-            else:
+            elif -80 >= area:
                 masked_image = cv2.bitwise_and(
                     original_image, original_image, mask=temp_mask)
                 kernel_size = dilate_kernel_size  # 核的大小，决定了放大的像素数

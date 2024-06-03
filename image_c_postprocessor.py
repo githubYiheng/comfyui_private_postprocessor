@@ -45,24 +45,28 @@ class ImageCPostprocessor:
         # 创建掩膜，阈值设置为1，区分透明和不透明
         _, mask = cv2.threshold(alpha_channel, 1, 255, cv2.THRESH_BINARY)
 
-        # 使用 RETR_EXTERNAL 模式找到所有轮廓
+
         contours, hierarchy = cv2.findContours(
             mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        if len(contours) < 2:
+        # 预定义输入图像最外围必须包含空包围使得内部要被查找的非空区域查找到的面积方向为负值
+        need_exp_contours = []
+        for contour in contours:
+            area = cv2.contourArea(contour, oriented=True)
+            if area < 0:
+                need_exp_contours.append((contour, area))
+        
+        if len(need_exp_contours) < 2:
             print("No contours found.")
             return (input_image, False)
         # 遍历每个轮廓，处理
-        for contour in contours:
-            area = cv2.contourArea(contour, oriented=True)
+        for contour, area in need_exp_contours:
 
             # 创建单个区域的掩膜
             temp_mask = np.zeros_like(mask)
             cv2.drawContours(temp_mask, [contour], -1,
                              255, thickness=cv2.FILLED)
-            # 预定义输入图像最外围必须包含空包围使得内部要被查找的非空区域查找到的面积方向为负值
-            if area >= 0:
-                continue
+            
+            
             if 0 > area and -80 < area:
                 # 平均颜色
                 # masked_image = cv2.bitwise_and(original_image, original_image, mask=temp_mask)
